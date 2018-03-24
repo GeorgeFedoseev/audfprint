@@ -376,9 +376,14 @@ __version__ = 20150406
 
 
 def main(argv):
+
+    
+
     """ Main routine for the command-line interface to audfprint """
     # Other globals set from command line
     args = docopt.docopt(USAGE, version=__version__, argv=argv[1:])
+
+
 
     # Figure which command was chosen
     poss_cmds = ['new', 'add', 'precompute', 'merge', 'newmerge', 'match',
@@ -386,6 +391,8 @@ def main(argv):
     cmdlist = [cmdname
                for cmdname in poss_cmds
                if args[cmdname]]
+
+
     if len(cmdlist) != 1:
         raise ValueError("must specify exactly one command")
     # The actual command as a str
@@ -410,6 +417,8 @@ def main(argv):
 
     precomp_type = 'hashes'
 
+
+
     # Set up the hash table, if we're using one (i.e., unless "precompute")
     if cmd is not "precompute":
         # For everything other than precompute, we need a database name
@@ -430,6 +439,7 @@ def main(argv):
                 hash_tab.params['samplerate'] = analyzer.target_sr
 
         else:
+
             # Load existing hash table file (add, match, merge)
             if args['--verbose']:
                 report([time.ctime() + " Reading hash table " + dbasename])
