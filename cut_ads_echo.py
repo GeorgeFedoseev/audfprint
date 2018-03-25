@@ -8,6 +8,8 @@ curr_dir_path = os.path.dirname(os.path.realpath(__file__))
 TMP_DIR_PATH = os.path.join(curr_dir_path, "processing_tmp/")
 ECHO_DIR_PATH = os.path.join(curr_dir_path, "echo-msk-data/")
 
+AD_EXAMPLES_DIR_PATH = os.path.join(ECHO_DIR_PATH, 'ad_examples/')
+
 AUDFPRING_DIR_PATH = os.path.join(curr_dir_path, "audfprint/")
 
 ads_db_path = os.path.join(ECHO_DIR_PATH, "ads.db")
@@ -19,7 +21,21 @@ if not os.path.exists(TMP_DIR_PATH):
     os.makedirs(TMP_DIR_PATH)
 
 
+def concatinate(input_paths, output_path):
+    print 'Concatinate %i files' % len(input_paths) 
+    # ffmpeg -i "concat:input1.mpg|input2.mpg|input3.mpg" -c copy output.mpg
+    p = subprocess.Popen(["ffmpeg", "-y",
+         "-i", 'concat:'+'|'.join(input_paths),
+         "-c", 'copy',         
+         output_path
+         ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
+    out, err = p.communicate()
+
+    if p.returncode != 0:
+        print("failed_ffmpeg_concat "+str(err))
+        return False
+    return True
 
 
 def cut_piece(input_path, start, end, output_path):
@@ -36,6 +52,45 @@ def cut_piece(input_path, start, end, output_path):
         print("failed_ffmpeg_conversion "+str(err))
         return False
     return True
+
+def maybe_create_ad_db():
+    if os.path.exists(ads_db_path):
+        return
+
+    print 'Create ads fingerprint db...'
+        
+    item_paths = []
+    for item in os.listdir(AD_EXAMPLES_DIR_PATH):
+        item_path = os.path.join(AD_EXAMPLES_DIR_PATH, item)
+        item_paths.append(item_path)
+    
+    txt_paths_file_path = os.path.join(ECHO_DIR_PATH, 'ad_examples_paths.txt')
+
+    txt = open(txt_paths_file_path, 'w')
+    txt.write('\n'.join(item_paths))
+    txt.close()
+
+
+
+    # create db
+    p = subprocess.Popen(
+        "venv/bin/python "
+        + audfprint_script_path
+        + " new"
+        + " --dbase "+ads_db_path
+        + " --density 100"
+        + " --shifts 4"
+        + " --samplerate 11025"
+        + " --list "+txt_paths_file_path,
+        
+         shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    out, err = p.communicate()
+    print out
+
+    
+
+
 
 def precompute(input_path):
     print 'Precomputing for %s' %input_path
@@ -67,7 +122,13 @@ def precompute(input_path):
 
     return output_file_path
 
-def find_ads(input_path):
+def get_audio_length(input_file):    
+    result = subprocess.Popen('ffprobe -i '+input_file+' -show_entries format=duration -v quiet -of csv="p=0"', stdout=subprocess.PIPE,stderr=subprocess.STDOUT, shell=True)
+    output = result.communicate()
+
+    return float(output[0])
+
+def find_ads(input_path, input_audio_path):
     print 'Finding ads in %s...' % input_path
 
     print 'using db %s' % ads_db_path
@@ -107,31 +168,111 @@ def find_ads(input_path):
     txt.close()   
 
   
-    regexp = re.compile(r'Matched[\s]*(?P<matched_duration>[0-9\.]+).*starting at[\s]*(?P<start_target>[0-9\.]*).*to time[\s]*(?P<start_piece>[0-9\.]*).*in.*\/(?P<ad_type>[a-zA-Z]*)\..*with[\s]*(?P<hashes_matched>[0-9]*).*of[\s]*(?P<hashes_total>[0-9]*)')    
+    regexp = re.compile(r'Matched[\s]*(?P<matched_duration>[0-9\.]+).*starting at[\s]*(?P<start_target>[0-9\.]*).*to time[\s]*(?P<start_piece>[0-9\.]*).*in.*\/(?P<ad_type>.*)\..*with[\s]*(?P<hashes_matched>[0-9]*).*of[\s]*(?P<hashes_total>[0-9]*)')    
     groups = [m.groupdict() for m in regexp.finditer(out)]
     
     ads = []
 
-    for m in groups:
-        ads.append({
-            'start': float(m['start_target']),
-            'end': float(m['start_target']) + float(m['matched_duration']),
-            'type': m['ad_type']
-            })        
-
-    print ads
 
 
+    pointer = 0
 
-    
+    total_duration = get_audio_length(input_audio_path)
 
-def cut_ads(input_folder, output_folder):
-    pass    
+    while pointer < len(groups):
+        m = groups[pointer]
+
+        if 'headpiece' in m['ad_type']:
+            ads.append({
+                'start': float(m['start_target']),
+                'end': float(m['start_target']) + float(m['matched_duration'])
+                })        
+
+            pointer += 1
+        elif 'ad_start' in m['ad_type']:
+            if pointer < len(groups)-1:
+                # cut from start of this ad to end of next
+                ads.append({
+                    'start': float(m['start_target']),
+                    'end': float(groups[pointer+1]['start_target']) + float(groups[pointer+1]['matched_duration'])
+                    })        
+                pointer += 2
+            else:
+                #if its last ad cut till end of audio
+                ads.append({
+                    'start': float(m['start_target']),
+                    'end': total_duration
+                    })        
+                pointer += 1
+        else:
+            raise Exception('WARNING: undefined ad type "%s"' % ad['type'])
+
+    print 'ads regions: %s' % str(ads)
+
+    return ads
+
+
+def get_regions_to_save(input_file):
+    total_duration = get_audio_length(input_file)
+    precomputed_path = precompute("/Users/gosha/Desktop/echo-test/2018-03-13-osoboe-1906.mp3")
+    ads_regions = find_ads(precomputed_path, input_file)
+
+    save_regions = []
+
+    for i, ad in enumerate(ads_regions):        
+
+        region_start = 0 if i == 0 else ads_regions[i-1]['end']
+        region_end = ad['start']
+
+        region_duration = region_end - region_start
+
+        if region_duration < 5:
+            continue
+
+        save_regions.append({
+            'start': region_start,
+            'end': region_end
+            })
+        
+
+    # add last region
+    if len(ads_regions) > 0:
+        region_start = ads_regions[-1]['end']
+        region_end = total_duration
+
+        region_duration = region_end - region_start
+
+        if not(region_duration < 5):            
+            save_regions.append({
+                'start': region_start,
+                'end': region_end
+                })
+
+    print '%i save regions: %s' % (len(save_regions), str(save_regions))
+
+    return save_regions
+
+def cut_ads(input_file_path, output_file_path):    
+    regions_to_merge = get_regions_to_save(input_file_path)
+    print 'Merging pieces without ads...'
+
+    piece_paths = []
+    for i, region in enumerate(regions_to_merge):
+        name, ext = os.path.splitext(os.path.basename(input_file_path))
+        piece_path = os.path.join(TMP_DIR_PATH, name+"-piece"+str(i)+'-'+str(region['start'])+'-'+str(region['end'])+'.'+ext)
+        if not os.path.exists(piece_path):
+            cut_piece(input_file_path, region['start'], region['end'], piece_path)
+        piece_paths.append(piece_path)
+
+    concatinate(piece_paths, output_file_path)
 
 
 if __name__ == '__main__':
-    precomputed_path = precompute("/Users/gosha/Desktop/echo-test/2018-03-13-osoboe-1906.mp3")
-    find_ads(precomputed_path)
+    maybe_create_ad_db()
+    cut_ads("/Users/gosha/Desktop/echo-test/2018-03-13-osoboe-1906.mp3", "/Users/gosha/Desktop/echo-test/2018-03-13-osoboe-1906_no_ads.mp3")
+    #get_regions_to_save("/Users/gosha/Desktop/echo-test/2018-03-13-osoboe-1906.mp3")
+    #precomputed_path = precompute("/Users/gosha/Desktop/echo-test/2018-03-13-osoboe-1906.mp3")
+    #find_ads(precomputed_path)
 
 
     # if len(sys.argv) < 3:
