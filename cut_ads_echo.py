@@ -23,6 +23,9 @@ if not os.path.exists(TMP_DIR_PATH):
 
 def concatinate(input_paths, output_path):
     print 'Concatinate %i files' % len(input_paths) 
+
+
+
     # ffmpeg -i "concat:input1.mpg|input2.mpg|input3.mpg" -c copy output.mpg
     p = subprocess.Popen(["ffmpeg", "-y",
          "-i", 'concat:'+'|'.join(input_paths),
@@ -62,6 +65,12 @@ def maybe_create_ad_db():
     item_paths = []
     for item in os.listdir(AD_EXAMPLES_DIR_PATH):
         item_path = os.path.join(AD_EXAMPLES_DIR_PATH, item)
+
+        try:
+            get_audio_length(item_path)
+        except:
+            continue
+
         item_paths.append(item_path)
     
     txt_paths_file_path = os.path.join(TMP_DIR_PATH, 'ad_examples_paths.txt')
@@ -181,27 +190,54 @@ def find_ads(input_path, input_audio_path):
 
     while pointer < len(groups):
         m = groups[pointer]
+        start = float(m['start_target'])
+        end = float(m['start_target']) + float(m['matched_duration'])
 
         if 'headpiece' in m['ad_type']:
-            ads.append({
-                'start': float(m['start_target']),
-                'end': float(m['start_target']) + float(m['matched_duration'])
-                })        
+            if len(ads) == 0 and start < 2*60:
+                # if first and not so far from beginning - cut from 0 to ad end
+                # (case where there are ads in beginning and then headpiece)
+                ads.append({
+                    'start': 0,
+                    'end': end,
+                    'type': m['ad_type']
+                    })        
+            else:
+                # else - just cut matched ad
+                ads.append({
+                    'start': start,
+                    'end': end,
+                    'type': m['ad_type']
+                    })
 
             pointer += 1
+
         elif 'ad_start' in m['ad_type']:
             if pointer < len(groups)-1:
-                # cut from start of this ad to end of next
-                ads.append({
-                    'start': float(m['start_target']),
-                    'end': float(groups[pointer+1]['start_target']) + float(groups[pointer+1]['matched_duration'])
-                    })        
-                pointer += 2
+
+                # try to find next headpiece 
+                # because between ad_start can be news before headpiece
+                while pointer < len(groups) and (not 'headpiece' in groups[pointer]['ad_type']):
+                    pointer+=1
+
+                if 'headpiece' in groups[pointer]['ad_type']:
+                    # cut from start of this ad to end of next
+
+                    end = float(groups[pointer]['start_target']) + float(groups[pointer]['matched_duration'])
+                    ads.append({
+                        'start': start,
+                        'end': end,
+                        'type': m['ad_type']
+                        })        
+                    pointer += 1
+                else:
+                    raise Exception('didnt find ad end, that started at %f sec in file %s' % (start, input_path))
             else:
                 #if its last ad cut till end of audio
                 ads.append({
-                    'start': float(m['start_target']),
-                    'end': total_duration
+                    'start': start,
+                    'end': total_duration,
+                    'type': m['ad_type']
                     })        
                 pointer += 1
         else:
@@ -247,6 +283,13 @@ def get_regions_to_save(input_file):
                 'start': region_start,
                 'end': region_end
                 })
+
+    else:
+        save_regions.append({
+                'start': 0,
+                'end': total_duration
+                })
+
 
     print '%i save regions: %s' % (len(save_regions), str(save_regions))
 
