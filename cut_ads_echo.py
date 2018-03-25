@@ -214,7 +214,7 @@ def find_ads(input_path, input_audio_path):
 
 def get_regions_to_save(input_file):
     total_duration = get_audio_length(input_file)
-    precomputed_path = precompute("/Users/gosha/Desktop/echo-test/2018-03-13-osoboe-1906.mp3")
+    precomputed_path = precompute(input_file)
     ads_regions = find_ads(precomputed_path, input_file)
 
     save_regions = []
@@ -252,7 +252,8 @@ def get_regions_to_save(input_file):
 
     return save_regions
 
-def cut_ads(input_file_path, output_file_path):    
+def cut_ads(input_file_path, output_file_path):  
+    print 'Processing %s' % input_file_path  
     regions_to_merge = get_regions_to_save(input_file_path)
     print 'Merging pieces without ads...'
 
@@ -266,19 +267,54 @@ def cut_ads(input_file_path, output_file_path):
 
     concatinate(piece_paths, output_file_path)
 
+def cut_ads_in_folder(input_dir_path, output_dir_path):
+    if not os.path.exists(input_dir_path):
+        raise Exception('folder not found: %s' % input_dir_path)
+
+    if not os.path.exists(output_dir_path):
+        os.makedirs(output_dir_path)
+
+    for item in os.listdir(input_dir_path):
+        item_path = os.path.join(input_dir_path, item)
+
+        # test if ffmpeg understands
+        try:
+            get_audio_length(item_path)
+        except:
+            continue
+        
+        basename = os.path.basename(item_path)
+
+        output_path = os.path.join(output_dir_path, basename)
+
+        cut_ads(item_path, output_path)
+
+
 
 if __name__ == '__main__':
     maybe_create_ad_db()
-    cut_ads("/Users/gosha/Desktop/echo-test/2018-03-13-osoboe-1906.mp3", "/Users/gosha/Desktop/echo-test/2018-03-13-osoboe-1906_no_ads.mp3")
+
+    if len(sys.argv) < 3:
+        print('USAGE: python cut_ads_echo.py <input_audio_file|folder_with_input_audio> <output_audio_file|folder_for_output>')
+    else: 
+        inp = sys.argv[1]
+        outp = sys.argv[2]
+
+        if os.path.exists(inp):
+            if os.path.isdir(inp):
+                cut_ads_in_folder(inp, outp)
+            else:
+                cut_ads(inp, outp)        
+
+        
+
+    #cut_ads("/Users/gosha/Desktop/echo-test/2018-03-13-osoboe-1906.mp3", "/Users/gosha/Desktop/echo-test/2018-03-13-osoboe-1906_no_ads.mp3")
     #get_regions_to_save("/Users/gosha/Desktop/echo-test/2018-03-13-osoboe-1906.mp3")
     #precomputed_path = precompute("/Users/gosha/Desktop/echo-test/2018-03-13-osoboe-1906.mp3")
     #find_ads(precomputed_path)
 
 
-    # if len(sys.argv) < 3:
-    #     print('USAGE: python cut_ads_echo.py <folder_with_input_audio> <folder_for_output>')
-    # else:    
-    #     cut_ads(sys.argv[1], sys.argv[2])
+    
 
 
 
