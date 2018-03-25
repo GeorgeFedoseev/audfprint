@@ -5,6 +5,9 @@ Cut ads from Echo-Msk radio shows using ad fingerprints.
 ffmpeg
 
     apt install -y ffmpeg (on Linux) or brew install ffmpeg (on Mac OS)
+python-tk
+
+    apt install -y python-tk (on Linux) or brew install python-tk (on Mac OS)
 pip  
 
     apt install -y pip (on Linux) or brew install pip (on Mac OS)
