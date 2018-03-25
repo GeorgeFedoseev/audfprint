@@ -124,7 +124,7 @@ def precompute(input_path):
         + " --density 100"
         + " --shifts 1"
         + " --samplerate 11025"
-        + " --ncores 4"        
+        + " --ncores 1"        
         + ' ' + input_path,
         #+ ' --opfile ' + map_file_path,
          shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -160,7 +160,7 @@ def find_ads(input_path, input_audio_path):
             + ' --find-time-range'
             + ' --max-matches 25'
             + " --dbase " + ads_db_path
-            + " --ncores 4"
+            + " --ncores 1"
             + ' --sortbytime'
             + ' ' + input_path,
             #+ ' --opfile ' + map_file_path,
