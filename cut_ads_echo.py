@@ -97,6 +97,9 @@ def maybe_create_ad_db():
     out, err = p.communicate()
     print out
 
+    if p.returncode != 0:
+        raise Exception("failed ads db creating: "+err)
+
     
 
 
@@ -128,6 +131,9 @@ def precompute(input_path):
 
     out, err = p.communicate()
     print out
+
+    if p.returncode != 0:
+        raise Exception("failed precompute: "+err)
 
     return output_file_path
 
@@ -162,6 +168,11 @@ def find_ads(input_path, input_audio_path):
 
         out, err = p.communicate()
         print out
+
+
+        if p.returncode != 0:
+            raise Exception("failed matching: "+err)
+            
 
         # write to file
         txt = open(matches_file_path, 'w')
