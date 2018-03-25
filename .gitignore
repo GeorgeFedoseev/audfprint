@@ -12,6 +12,7 @@ venv/
 bin/
 build/
 develop-eggs/
+processing_tmp/
 dist/
 eggs/
 lib/
