@@ -12,7 +12,7 @@ AD_EXAMPLES_DIR_PATH = os.path.join(ECHO_DIR_PATH, 'ad_examples/')
 
 AUDFPRING_DIR_PATH = os.path.join(curr_dir_path, "audfprint/")
 
-ads_db_path = os.path.join(ECHO_DIR_PATH, "ads.db")
+ads_db_path = os.path.join(TMP_DIR_PATH, "ads.db")
 audfprint_script_path = os.path.join(AUDFPRING_DIR_PATH, "audfprint.py")
 
 map_file_path = os.path.join(TMP_DIR_PATH, "matches.txt")
@@ -64,7 +64,7 @@ def maybe_create_ad_db():
         item_path = os.path.join(AD_EXAMPLES_DIR_PATH, item)
         item_paths.append(item_path)
     
-    txt_paths_file_path = os.path.join(ECHO_DIR_PATH, 'ad_examples_paths.txt')
+    txt_paths_file_path = os.path.join(TMP_DIR_PATH, 'ad_examples_paths.txt')
 
     txt = open(txt_paths_file_path, 'w')
     txt.write('\n'.join(item_paths))

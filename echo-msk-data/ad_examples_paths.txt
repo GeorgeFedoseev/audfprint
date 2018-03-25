@@ -1,3 +1,0 @@
-/Users/gosha/Projects/audfprint-cut-ads-from-echo-msk/echo-msk-data/ad_examples/ad_start.wav
-/Users/gosha/Projects/audfprint-cut-ads-from-echo-msk/echo-msk-data/ad_examples/ad_start2.wav
-/Users/gosha/Projects/audfprint-cut-ads-from-echo-msk/echo-msk-data/ad_examples/headpiece.wav
