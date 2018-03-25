@@ -19,6 +19,9 @@ pip
     pip install -r requirements.txt
 
 # Usage
+## Add ad examples
+Just put ad examples to `echo-msk-data/ad_examples` folder  
+To update fingerprints db: **remove cache** folder `processing_tmp`
 ## Cut ads from files in folder
     python cut_ads_echo.py ~/Desktop/echo-test/ ~/Desktop/echo-test/no_ads
 ## Cut ads in single file
