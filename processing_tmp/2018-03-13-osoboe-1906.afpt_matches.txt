@@ -1,0 +1,5 @@
+Sun Mar 25 14:21:40 2018 Reading hash table /Users/gosha/Projects/audfprint-cut-ads-from-echo-msk/echo-msk-data/ads.db
+Read fprints for 2 files ( 782 hashes) from /Users/gosha/Projects/audfprint-cut-ads-from-echo-msk/echo-msk-data/ads.db (0.00% dropped)
+Matched    4.3 s starting at  587.9 s in /Users/gosha/Projects/audfprint-cut-ads-from-echo-msk/processing_tmp/2018-03-13-osoboe-1906.afpt to time    1.9 s in /Users/gosha/Desktop/test_audio_ads_cut/ad_start.wav with   144 of   376 common hashes at rank  0
+Matched    8.8 s starting at  688.1 s in /Users/gosha/Projects/audfprint-cut-ads-from-echo-msk/processing_tmp/2018-03-13-osoboe-1906.afpt to time    1.3 s in /Users/gosha/Desktop/test_audio_ads_cut/ad.wav with    19 of   149 common hashes at rank  1
+Matched    5.2 s starting at 1360.7 s in /Users/gosha/Projects/audfprint-cut-ads-from-echo-msk/processing_tmp/2018-03-13-osoboe-1906.afpt to time    4.7 s in /Users/gosha/Desktop/test_audio_ads_cut/ad.wav with     9 of   149 common hashes at rank  1

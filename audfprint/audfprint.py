@@ -76,7 +76,7 @@ def file_precompute_peaks_or_hashes(analyzer, filename, precompdir,
             precompext = audfprint_analyze.PRECOMPEXT
         else:
             precompext = audfprint_analyze.PRECOMPPKEXT
-    opfname = os.path.join(precompdir, root + precompext)
+    opfname = os.path.join(precompdir, os.path.basename(root + precompext))
     if skip_existing and os.path.isfile(opfname):
         return ["file " + opfname + " exists (and --skip-existing); skipping"]
     else:
